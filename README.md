@@ -19,7 +19,7 @@ An engaging and dynamic **Audio Visualizer** that transforms audio files into vi
 ---
 
 ## 🖼️ **Preview**
-![Audio Visualizer Preview](https://via.placeholder.com/800x400.png?text=Audio+Visualizer+Preview)  
+![Audio Visualizer Preview]("D:\Ananya\work\audio-5-12-2024.png")  
 
 
 ---
