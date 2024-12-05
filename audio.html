@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Interactive Audio Visualizer</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      background: linear-gradient(135deg, #1d3557, #457b9d, #a8dadc);
+      font-family: Arial, sans-serif;
+      overflow: hidden;
+      color: #fff;
+    }
+
+    header, footer {
+      background: rgba(0, 0, 0, 0.6);
+      padding: 15px;
+      text-align: center;
+      width: 100%;
+      z-index: 3;
+    }
+
+    header h1, footer p {
+      margin: 0;
+      font-size: 1.5em;
+    }
+
+    canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 1;
+    }
+
+    .controls {
+      position: absolute;
+      bottom: 80px;
+      z-index: 3;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .file-label {
+      position: relative;
+      display: inline-block;
+      padding: 10px 30px;
+      font-size: 16px;
+      color: #fff;
+      background: rgba(255, 255, 255, 0.1);
+      border: 2px solid #fff;
+      border-radius: 25px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      overflow: hidden;
+    }
+
+    .file-label::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: rgba(255, 255, 255, 0.4);
+      transition: all 0.3s ease;
+      z-index: 0;
+    }
+
+    .file-label:hover::before {
+      left: 0;
+    }
+
+    .file-label:hover {
+      color: #000;
+      background: rgba(255, 255, 255, 0.8);
+      border-color: #a8dadc;
+    }
+
+    #audio {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Interactive Audio Visualizer</h1>
+  </header>
+
+  <canvas id="canvas"></canvas>
+
+  <div class="controls">
+    <label class="file-label" for="audio">Choose an Audio File</label>
+    <input type="file" accept="audio/*" id="audio" />
+    <div>
+      <button id="playBtn">Play</button>
+      <button id="pauseBtn">Pause</button>
+      <button id="stopBtn">Stop</button>
+    </div>
+    <input type="range" id="volumeControl" min="0" max="1" step="0.01" value="0.5" />
+  </div>
+
+  <footer>
+    <p>Created with ❤️ for Music Lovers</p>
+  </footer>
+
+  <script>
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
+    const audioInput = document.getElementById("audio");
+    const playBtn = document.getElementById("playBtn");
+    const pauseBtn = document.getElementById("pauseBtn");
+    const stopBtn = document.getElementById("stopBtn");
+    const volumeControl = document.getElementById("volumeControl");
+
+    let audioElement = new Audio();
+    let audioCtx, analyser, audioSource, dataArray, bufferLength;
+
+    audioInput.addEventListener("change", function () {
+      const file = this.files[0];
+      if (file) {
+        const url = URL.createObjectURL(file);
+        audioElement.src = url;
+        audioElement.load();
+      }
+    });
+
+    function setupAudioContext() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        audioSource = audioCtx.createMediaElementSource(audioElement);
+        analyser = audioCtx.createAnalyser();
+        analyser.fftSize = 256;
+        bufferLength = analyser.frequencyBinCount;
+        dataArray = new Uint8Array(bufferLength);
+        audioSource.connect(analyser);
+        analyser.connect(audioCtx.destination);
+      }
+    }
+
+    playBtn.addEventListener("click", () => {
+      setupAudioContext();
+      audioElement.play();
+      animate();
+    });
+
+    pauseBtn.addEventListener("click", () => audioElement.pause());
+    stopBtn.addEventListener("click", () => {
+      audioElement.pause();
+      audioElement.currentTime = 0;
+    });
+
+    volumeControl.addEventListener("input", () => {
+      audioElement.volume = volumeControl.value;
+    });
+
+    function animate() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      analyser.getByteFrequencyData(dataArray);
+
+      ctx.fillStyle = "rgba(0, 0, 0, 0.1)";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      for (let i = 0; i < bufferLength; i++) {
+        const barHeight = dataArray[i] * canvas.height / 256;
+        const color = `hsl(${i * 2}, 100%, 50%)`;
+        ctx.fillStyle = color;
+        ctx.fillRect(i * 4, canvas.height - barHeight, 3, barHeight);
+      }
+
+      const avgFrequency = dataArray.reduce((a, b) => a + b, 0) / bufferLength;
+      document.body.style.backgroundColor = `hsl(${avgFrequency}, 70%, 50%)`;
+
+      requestAnimationFrame(animate);
+    }
+  </script>
+</body>
+</html>
